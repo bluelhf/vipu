@@ -1,0 +1,6 @@
+main: blue.lhf.vipu.Vipu
+name: Vipu
+version: ${project.version}
+api-version: "1.19"
+author: bluelhf
+description: An alternative plugin loading system for Spigot
