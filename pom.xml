@@ -66,6 +66,19 @@
         </resources>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>tuonetar-releases</id>
+            <name>Ilari's Project Repository</name>
+            <url>https://maven.lhf.blue/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>tuonetar-snapshots</id>
+            <name>Ilari's Project Repository</name>
+            <url>https://maven.lhf.blue/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <pluginRepositories>
         <pluginRepository>
             <id>tuonetar-releases</id>
@@ -121,6 +134,12 @@
             <scope>provided</scope>
         </dependency>
         <!-- endregion -->
+
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+            <version>4.8.157</version>
+        </dependency>
 
         <dependency>
             <groupId>mx.kenzie</groupId>

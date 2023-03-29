@@ -21,6 +21,11 @@ public class Surma {
         this.access = new URLCLassLoaderAccess(access);
     }
 
+    /**
+     * Attempts to locate the bytecode of the given class by guessing its resource location in the class loader.
+     * @return The bytecode of the given class.
+     * @param clazz The class to get the bytecode of.
+     * */
     protected static byte[] getBytecode(final Class<?> clazz) throws IOException {
         final ClassLoader loader = clazz.getClassLoader();
         final String path = clazz.getName().replace('.', '/') + ".class";
@@ -40,13 +45,17 @@ public class Surma {
     }
 
     /**
-     * Injects a single class into the {@link URLClassLoader}.
+     * Injects a single class into the {@link URLClassLoader}. This action is idempotent.
      * @param clazz The class to inject. The bytecode of the class must be available at <code>/name/of/Class.class</code>
      *              in the class loader of the input class.
      * */
     public Class<?> injectSingle(final Class<?> clazz) throws Exception {
-        final byte[] bytes = getBytecode(clazz);
-        return access.defineClass(bytes, 0, bytes.length);
+        try {
+            return loadInjected(clazz);
+        } catch (ClassNotFoundException exception) {
+            final byte[] bytes = getBytecode(clazz);
+            return access.defineClass(bytes, 0, bytes.length);
+        }
     }
 
     /**
@@ -55,9 +64,11 @@ public class Surma {
      * @param base The class to get the injected version of.
      * @see #injectSingle(Class)
      * */
-    public <A> Class<A> getInjected(final Class<?> base) throws ClassNotFoundException {
+    public <A> Class<A> loadInjected(final Class<?> base) throws ClassNotFoundException {
         return (Class<A>) Class.forName(base.getName(), true, access.target());
     }
+
+
 
     /**
      * @return A proxy of the input {@link Object} that uses reflective access to invoke methods and implements
@@ -68,9 +79,10 @@ public class Surma {
      * @see Proxy#newProxyInstance(ClassLoader, Class[], InvocationHandler)
      * */
     public <T> T reflectiveProxy(final Class<T> theInterface, final Object target) {
+        if (target == null) return null;
         return (T) Proxy.newProxyInstance(theInterface.getClassLoader(), new Class<?>[]{theInterface},
             (proxy, method, args) -> {
-                final Class<?>[] injectedTypes = getInjected(method.getParameterTypes());
+                final Class<?>[] injectedTypes = loadInjected(method.getParameterTypes());
                 return target.getClass().getMethod(method.getName(), injectedTypes).invoke(target,
                     transform(args, injectedTypes));
             });
@@ -97,12 +109,17 @@ public class Surma {
         return access.target();
     }
 
-    private Class<?>[] getInjected(Class<?>[] parameterTypes) {
+    /**
+     * Maps the given array of classes to their injected versions, or themselves if they are not injected.
+     * @param parameterTypes The classes to map.
+     * @return The mapped classes.
+     * */
+    private Class<?>[] loadInjected(Class<?>[] parameterTypes) {
         if (parameterTypes == null) return null;
         final Class<?>[] injected = new Class[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; ++i) {
             try {
-                injected[i] = getInjected(parameterTypes[i]);
+                injected[i] = loadInjected(parameterTypes[i]);
             } catch (ClassNotFoundException notInjected) {
                 injected[i] = parameterTypes[i];
             }
@@ -111,6 +128,12 @@ public class Surma {
         return injected;
     }
 
+    /**
+     * Forcibly transforms the given array of objects to the specified types.
+     * @param args The objects to transform.
+     * @param parameterTypes The types to transform the objects to.
+     * @return The transformed objects.
+     * */
     private Object[] transform(final Object[] args, final Class<?>[] parameterTypes) {
         if (args == null) return null;
         final Object[] output = new Object[args.length];

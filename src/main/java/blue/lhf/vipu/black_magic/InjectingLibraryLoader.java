@@ -16,7 +16,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.*;
@@ -70,28 +69,29 @@ public class InjectingLibraryLoader {
             ).build()));
     }
 
-    public void injectDependencies(final VipuPlugin plugin)
-        throws DependencyResolutionException, ClassNotFoundException {
-        final Annotation[] annotations = surma.proxySource(plugin).getAnnotationsByType(surma.getInjected(Libraries.class));
+    public void injectDependencies(final Class<?> plugin) throws Exception {
+        final String name = getName(plugin);
+
+        final Annotation[] annotations = plugin.getAnnotationsByType(surma.loadInjected(Libraries.class));
         final Function<Object, Libraries> libraryByProxy = bind1(surma::reflectiveProxy, Libraries.class);
         final String[] libraries = Arrays.stream(annotations)
                                          .map(libraryByProxy).map(Libraries::value)
                                          .flatMap(Arrays::stream).toArray(String[]::new);
 
+
         if (libraries.length == 0) return;
         logger.log(Level.INFO, "[{0}] Loading {1} libraries... please wait", new Object[] {
-            plugin.getName(), libraries.length
+            name, libraries.length
         });
 
-        List<Dependency> dependencies = new ArrayList<>();
+        final List<Dependency> dependencies = new ArrayList<>();
         for (final String library : libraries) {
             final Artifact artifact = new DefaultArtifact(library);
             final Dependency dependency = new Dependency(artifact, null);
             dependencies.add(dependency);
         }
 
-        DependencyResult result;
-        result = repository.resolveDependencies(session, new DependencyRequest(
+        final DependencyResult result = repository.resolveDependencies(session, new DependencyRequest(
             new CollectRequest((Dependency) null, dependencies, repositories), null));
 
         for (final ArtifactResult artifact : result.getArtifactResults()) {
@@ -101,13 +101,17 @@ public class InjectingLibraryLoader {
                 surma.injectJAR(file.toURI().toURL());
             } catch (MalformedURLException ex) {
                 throw new AssertionError("Path to file was not a valid URL?", ex);
-            } catch (InvocationTargetException | IllegalAccessException e) {
-                throw new RuntimeException("Failed to inject JAR", e);
             }
 
             logger.log(Level.INFO, "[{0}] Loaded library {1}", new Object[] {
-                plugin.getName(), file
+                name, file
             });
         }
+    }
+
+    private String getName(final Class<?> plugin) throws ClassNotFoundException {
+        final Name nameAnnotation = surma.reflectiveProxy(Name.class,
+            plugin.getAnnotation(surma.loadInjected(Name.class)));
+        return nameAnnotation != null ? nameAnnotation.value() : plugin.getSimpleName();
     }
 }
