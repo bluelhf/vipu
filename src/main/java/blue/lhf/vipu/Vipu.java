@@ -15,6 +15,9 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 
+/**
+ * The plugin class for Vipu. Contains plugin loading code (for now).
+ * */
 public class Vipu extends JavaPlugin {
     private InjectingLibraryLoader libraryLoader;
     private Surma surma;
@@ -28,6 +31,10 @@ public class Vipu extends JavaPlugin {
         enablePlugins();
     }
 
+    /**
+     * Used to prevent Vipu from re-loading plugins if the server reloads, as that's impossible.
+     * @return Whether Vipu has loaded before.
+     * */
     public boolean hasLoadedBefore() {
         try {
             getServer().getClass().getClassLoader().loadClass(VipuPlugin.class.getName());

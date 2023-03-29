@@ -14,5 +14,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target(TYPE)
 public @interface Libraries {
+    /**
+     * @return The libraries, specified as an array of Maven coordinates, like <code>org.example:artifact:3.2.1</code>.
+     * */
     String[] value();
 }

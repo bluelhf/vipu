@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.*;
@@ -40,6 +41,12 @@ public class InjectingLibraryLoader {
     private final List<RemoteRepository> repositories;
     private final Surma surma;
 
+    /**
+     * Creates a new injecting library loader with the given {@link Surma} instance, repository path and logger.
+     * @param surma The {@link Surma} instance to use, i.e. which {@link java.net.URLClassLoader} to inject dependencies into.
+     * @param repositoryPath The path where downloaded dependencies should be placed.
+     * @param logger The logger to use.
+     * */
     public InjectingLibraryLoader(final Surma surma, final Path repositoryPath, @NotNull Logger logger) {
         this.surma = surma;
         this.logger = logger;
@@ -69,7 +76,17 @@ public class InjectingLibraryLoader {
             ).build()));
     }
 
-    public void injectDependencies(final Class<?> plugin) throws Exception {
+    /**
+     * Injects the libraries of an already-injected {@link VipuPlugin} class into the server class loader.
+     * <p><strong>Prone to mis-use, poorly documented. Internal use only.</strong></p>
+     * @hidden Internal use only.
+     * @throws ClassNotFoundException If the {@link Libraries} or {@link Name} annotations have not been injected into the server class loader.
+     * @throws InvocationTargetException If adding the dependency JARs to the class loader fails.
+     * @throws DependencyResolutionException If one of the dependencies could not be resolved.
+     * @param plugin The injected {@link VipuPlugin} class.
+     * */
+    public void injectDependencies(final Class<?> plugin)
+        throws ClassNotFoundException, InvocationTargetException, DependencyResolutionException {
         final String name = getName(plugin);
 
         final Annotation[] annotations = plugin.getAnnotationsByType(surma.loadInjected(Libraries.class));

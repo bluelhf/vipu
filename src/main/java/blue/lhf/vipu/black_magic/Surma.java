@@ -38,9 +38,11 @@ public class Surma {
 
     /**
      * Adds the given {@link URL} to the {@link URLClassLoader}.
+     * @param url The URL to add.
      * @see URLClassLoader#addURL(URL)
+     * @throws InvocationTargetException If the underlying call to {@link URLClassLoader#addURL(URL)} throws an exception.
      * */
-    public void injectJAR(final URL url) throws InvocationTargetException, IllegalAccessException {
+    public void injectJAR(final URL url) throws InvocationTargetException {
         access.addURL(url);
     }
 
@@ -48,6 +50,8 @@ public class Surma {
      * Injects a single class into the {@link URLClassLoader}. This action is idempotent.
      * @param clazz The class to inject. The bytecode of the class must be available at <code>/name/of/Class.class</code>
      *              in the class loader of the input class.
+     * @throws Exception If the bytecode of the class could not be found or if the class could not be defined.
+     * @return The injected class.
      * */
     public Class<?> injectSingle(final Class<?> clazz) throws Exception {
         try {
@@ -62,6 +66,7 @@ public class Surma {
      * @return The version of the given class that is loaded by the {@link URLClassLoader}.
      * @throws ClassNotFoundException If the given class has not been injected.
      * @param base The class to get the injected version of.
+     * @param <A> The type of the class.
      * @see #injectSingle(Class)
      * */
     public <A> Class<A> loadInjected(final Class<?> base) throws ClassNotFoundException {
@@ -75,6 +80,7 @@ public class Surma {
      *         the given interface.
      * @throws IllegalArgumentException If the argument restrictions placed by {@link Proxy#newProxyInstance(ClassLoader, Class[], InvocationHandler)} are not met
      * @param theInterface The interface to implement.
+     * @param <T> The type of the interface.
      * @param target The object to proxy.
      * @see Proxy#newProxyInstance(ClassLoader, Class[], InvocationHandler)
      * */
@@ -171,13 +177,21 @@ public class Surma {
             }
         }
 
-        public void addURL(final URL url) throws InvocationTargetException, IllegalAccessException {
-            addURL.invoke(target, url);
+        public void addURL(final URL url) throws InvocationTargetException {
+            try {
+                addURL.invoke(target, url);
+            } catch (IllegalAccessException e) {
+                throw new AssertionError("URLClassLoader#addURL is not accessible", e);
+            }
         }
 
         public Class<?> defineClass(final byte[] bytecode, final int offset, final int length)
-            throws InvocationTargetException, IllegalAccessException {
-            return (Class<?>) defineClass.invoke(target, bytecode, offset, length);
+            throws InvocationTargetException {
+            try {
+                return (Class<?>) defineClass.invoke(target, bytecode, offset, length);
+            } catch (IllegalAccessException e) {
+                throw new AssertionError("URLClassLoader#defineClass is not accessible", e);
+            }
         }
     }
 }

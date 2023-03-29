@@ -26,6 +26,27 @@
                 <version>3.10.1</version>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <show>public</show>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>blue.lhf</groupId>
                 <artifactId>run-paper-maven-plugin</artifactId>
                 <version>1.0.2</version>
